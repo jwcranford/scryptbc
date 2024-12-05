@@ -74,7 +74,9 @@ public final class ScryptFile {
         try (inputStream) {
             Header header = Header.decode(inputStream);
             if (header.calcMemRequired() > Runtime.getRuntime().maxMemory()) {
-                throw new ScryptException("Not enough memory to decrypt the given stream. Try running again with a larger heap size.");
+                var msg = String.format("Not enough memory to decrypt the given stream. Run again with a heap size of at least %,d MB.",
+                        header.calcMbRequired());
+                throw new ScryptException(msg);
             }
             var generatedKeys = BcUtil.jceScrypt(
                     password,
