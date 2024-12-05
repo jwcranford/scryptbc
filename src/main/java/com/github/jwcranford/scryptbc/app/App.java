@@ -15,7 +15,7 @@ import java.nio.file.Path;
 @Command(name="scryptbc",
         description="Encrypt and decrypt files with a Bouncycastle-based version of the scrypt utility",
         mixinStandardHelpOptions = true,
-        version="scryptbc 0.1.1",
+        version="scryptbc 0.1.2",
         synopsisSubcommandLabel = "COMMAND",
     subcommands = {CommandLine.HelpCommand.class}
 )

@@ -39,4 +39,6 @@ Commands:
 
 # Implementation Notes
 
-TODO - add some details about memory limits taken from JVM args, not from command-line
+`scryptbc dec` enforces a memory limit by exiting with an error message if the file would 
+require too much memory to decrypt, based on the heap size of the JVM. The memory limit is 
+a function of the N and P parameters in the file header.
