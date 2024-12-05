@@ -1,0 +1,36 @@
+Design
+========
+
+   Header (POJO)
+   -----------------
+   + getLog2N
+   + getR
+   + getP
+   + getSalt()
+   - getEncodedBytes()
+   - Header(log2N, r, p, salt)
+   - setEncodedBytes(bytes)
+
+   Header header = Header.decode(inputStream)
+   // leaves inputStream open
+
+   byte[] bytes = header.encode()
+
+   ScryptFile
+   -----------
+   var file = ScryptFile.decrypt(inputStream, len, password, outputStream)
+   file.getHeader()
+
+   var file = new ScryptFile(log2N, r, p)
+   file.encrypt(inputStream, password, outputStream)
+
+    Exception Hierarchy
+    --------------------
+    ScryptException
+        +- ScryptException.InvalidLog2n
+        +- ScryptException.InvalidRP
+        +- ScryptException.InvalidField
+        +- ScryptException.Decryption
+            +- ScryptException.CorruptFile
+            +- ScryptException.WrongPassword
+

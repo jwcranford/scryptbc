@@ -1,0 +1,40 @@
+plugins {
+    // Apply the application plugin to add support for building a CLI application in Java.
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    // Use Maven Central for resolving dependencies.
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'info.picocli:picocli:4.7.1'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
+
+    // Use JUnit Jupiter for testing.
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+application {
+    // Define the main class for the application.
+    mainClass = 'com.github.jwcranford.scryptbc.app.App'
+    applicationName = 'scryptbc'
+}
+
+tasks.named('test') {
+    // Use JUnit Platform for unit tests.
+    useJUnitPlatform()
+}
+
+test {
+    minHeapSize = "1g"
+    maxHeapSize = "2g"
+}

@@ -1,0 +1,49 @@
+This file is a redistribution of
+https://raw.githubusercontent.com/Tarsnap/scrypt/master/FORMAT under
+the following license:
+
+Copyright 2005-2023 Colin Percival.  All rights reserved.
+Copyright 2011-2023 Tarsnap Backup Inc.  All rights reserved.
+Copyright 2014 Sean Kelly.  All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+=======================
+
+scrypt encrypted data format
+----------------------------
+
+offset	length
+0	6	"scrypt"
+6	1	scrypt data file version number (== 0)
+7	1	log2(N) (must be between 1 and 63 inclusive)
+8	4	r (big-endian integer; must satisfy r * p < 2^30)
+12	4	p (big-endian integer; must satisfy r * p < 2^30)
+16	32	salt
+48	16	first 16 bytes of SHA256(bytes 0 .. 47)
+64	32	HMAC-SHA256(bytes 0 .. 63)
+96	X	data xor AES256-CTR key stream generated with nonce == 0
+96+X	32	HMAC-SHA256(bytes 0 .. 96 + (X - 1))
+
+AES256-CTR is computed with a 256-bit AES key key_enc, and HMAC-SHA256 is
+computed with a 256-bit key key_hmac, where
+  scrypt(password, salt, N, r, p, 64) == [key_enc][key_hmac]
