@@ -12,17 +12,16 @@ import java.util.Arrays;
  * Represents a file following the scrypt file format.
  *
  * <h3>Usage</h3>
- * <xmp>
- *    ScryptFile file;
+ * <pre>
  *    try {
- *         file = ScryptFile.decrypt(inputStream, len, password, outputStream);
+ *         ScryptFile file = ScryptFile.decrypt(inputStream, len, password, outputStream);
+ *         Header header = file.getHeader();
  *    } catch (IOException e) {
  *        // handle I/O error
  *    } catch (ScryptException e) {
  *        // handle error decrypting the input stream
  *    }
- *    ScryptFile.Header header = file.getHeader();
- * </xmp>
+ * </pre>
  *
  * <p>
  *     Note that in the case of error, partially decrypted data can be sent to the outputStream. The caller
@@ -56,7 +55,7 @@ public final class ScryptFile {
      * @param inputStream input stream. This stream is always closed before the method returns
      * @param len length of the input stream
      * @param password password used to generate the decryption key.
-     *                 Note that this method clears the password array as soon as possible, as a security precaution.
+     *                 Note that this method clears the password array immediately after use, as a security precaution.
      * @param outputStream decrypted data gets sent here. This stream is always closed before the method returns.
      * @return an ScryptFile object that holds the scrypt header read from the input stream
      * @throws IOException on I/O error
@@ -74,17 +73,24 @@ public final class ScryptFile {
         try (inputStream) {
             Header header = Header.decode(inputStream);
             if (header.calcMemRequired() > Runtime.getRuntime().maxMemory()) {
-                var msg = String.format("Not enough memory to decrypt the given stream. Run again with a heap size of at least %,d MB.",
+                var msg = String.format("Not enough memory to derive the decryption key. Run again with a heap size larger than %,d MB.",
                         header.calcMbRequired());
                 throw new ScryptException(msg);
             }
-            var generatedKeys = BcUtil.jceScrypt(
-                    password,
-                    header.getSalt(),
-                    1 << header.getLog2N(),
-                    header.getR(),
-                    header.getP(),
-                    GENERATED_KEY_BITS);
+            byte[] generatedKeys = null;
+            try {
+                generatedKeys = BcUtil.jceScrypt(
+                            password,
+                            header.getSalt(),
+                            1 << header.getLog2N(),
+                            header.getR(),
+                            header.getP(),
+                            GENERATED_KEY_BITS);
+            } catch (OutOfMemoryError e) {
+                System.err.printf("Not enough memory to generate the decryption key. Run again with a heap size larger than %,d bytes.%n",
+                        Runtime.getRuntime().maxMemory());
+                throw e;
+            }
 
             // clear password, since we don't need it anymore
             Arrays.fill(password, (char) 0);

@@ -22,7 +22,7 @@ import java.nio.file.Path;
 public class App {
 
     @Command(description = "Decrypt infile and write the result to outfile if specified, or the standard output otherwise. " +
-            "The user will be prompted to enter the passphrase used at encryption time to generate the derived encryption key.")
+            "The user will be prompted to enter the passphrase used at encryption time to derive the encryption key.")
     public int dec(
             @Option(
                     names = {"-v", "--verbose"},
