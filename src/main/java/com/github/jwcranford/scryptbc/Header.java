@@ -3,6 +3,7 @@ package com.github.jwcranford.scryptbc;
 import org.bouncycastle.util.Pack;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +25,8 @@ public final class Header {
     private static final int FIRST_HASHABLE_LEN = 48;
     static final int FIRST_HASH_OFFSET = 48;
     static final int FIRST_HASH_LEN = 16;
+    public static final int MAX_LOG2N = 63;
+    public static final int MAX_RP = 1 << 30;
 
     private final byte log2N;
     private final int r;
@@ -32,7 +35,13 @@ public final class Header {
 
     private byte[] encodedBytes;
 
-    private Header(byte log2N, int r, int p, byte[] salt) {
+    public Header(byte log2N, int r, int p, byte[] salt) {
+        if (invalidLog2N(log2N)) {
+            throw new IllegalArgumentException(String.format("invalid log2N - must be between 1 and %d inclusive", MAX_LOG2N));
+        }
+        if (invalidRP(r, p)) {
+            throw new IllegalArgumentException("Invalid r and p; must satisfy r * p < 2 ^ 30");
+        }
         this.log2N = log2N;
         this.r = r;
         this.p = p;
@@ -59,13 +68,13 @@ public final class Header {
         }
 
         byte log2n = header[LOG2N_OFFSET];
-        if (log2n < 1 || log2n > 63) {
+        if (invalidLog2N(log2n)) {
             throw new ScryptException.InvalidLog2n(log2n);
         }
 
         int r = Pack.bigEndianToInt(header, R_OFFSET);
         int p = Pack.bigEndianToInt(header, P_OFFSET);
-        if (r * p >= 1 << 30) {
+        if (invalidRP(r, p)) {
             throw new ScryptException.InvalidRP(r, p);
         }
 
@@ -81,6 +90,35 @@ public final class Header {
         var hdr = new Header(log2n, r, p, salt);
         hdr.setEncodedBytes(header);
         return hdr;
+    }
+
+    /**
+     * Encodes the instance into the scrypt file header format, returning the encoded bytes.
+     * <p>
+     * Note that the return value is memoized, so that subsequent calls to
+     * {@link #getEncodedBytes()} will return the same value.
+     */
+    public byte[] encode() {
+        var out = new ByteArrayOutputStream(HEADER_LEN);
+        out.writeBytes(MAGIC);
+        out.write(VERSION);
+        out.write(log2N);
+        out.writeBytes(Pack.intToBigEndian(r));
+        out.writeBytes(Pack.intToBigEndian(p));
+        out.writeBytes(salt);
+        var firstBytes = out.toByteArray();
+        var firstHash = BcUtil.computeDigest(firstBytes);
+        out.write(firstHash, 0, FIRST_HASH_LEN);
+        encodedBytes = out.toByteArray();
+        return encodedBytes;
+    }
+
+    private static boolean invalidRP(int r, int p) {
+        return r * p >= MAX_RP;
+    }
+
+    private static boolean invalidLog2N(byte log2n) {
+        return log2n < 1 || log2n > MAX_LOG2N;
     }
 
 

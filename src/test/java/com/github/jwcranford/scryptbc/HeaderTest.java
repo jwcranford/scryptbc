@@ -113,4 +113,10 @@ public class HeaderTest {
                 () -> decode(input)
         );
     }
+
+    @Test
+    public void encode_works() {
+        var header = new Header(HELLOWORLD_LOG2N, HELLOWORLD_R, HELLOWORLD_P, Hex.decode(SALT_HEX));
+        assertEquals(HELLOWORLD_HEX.substring(0, 128), Hex.toHexString(header.encode()));
+    }
 }
