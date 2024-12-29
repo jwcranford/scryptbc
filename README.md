@@ -37,21 +37,38 @@ scryptbc info infile
 ```
 
 ### Decryption
-Decrypt infile and write the result to outfile if specified, or the standard
-output otherwise. The user will be prompted to enter the passphrase used at
+Decrypt infile and write the result to outfile. The user will be prompted to enter the passphrase used at
 encryption time to derive the encryption key.
 
 ```
-scryptbc dec [-v] infile [outfile]
--v, --verbose   Print encryption parameters (N, r, p) and memory/cpu limits
-to standard error
+scryptbc dec [-v] infile outfile
+  -v, --verbose   Print encryption parameters (N, r, p) and memory/cpu limits 
+                    to standard error
+```
+
+### Encryption
+Encrypt infile and write the result to outfile.  The user will be prompted to enter a passphrase (twice) to
+be used to derive the encryption key.
+
+```
+scryptbc enc [-v] [--logN=<arg1>] [-p=<arg3>] [-r=<arg2>] infile outfile
+    --logN=<arg1>   Set the work parameter N to 2^value.  If --logN is set,
+                        -r and -p must also be set.
+    -p=<arg3>       Set the work parameter p to value.  If -p is set, --logN
+                        and -r must also be set.
+    -r=<arg2>       Set the work parameter r to value.  If -r is set, --logN
+                        and -p must also be set.
+    -v, --verbose   Print encryption parameters (N, r, p) and memory/cpu
+                        limits to standard error
 ```
 
 # Implementation Notes
 
 The decryption sub-command (`scryptbc dec`) exits with an error message if 
 the max heap memory is too small to generate the decryption key for the input file,
-based on the `N` and `r` parameters in the file header.
+based on the `N` and `r` parameters in the file header. See
+https://blog.filippo.io/the-scrypt-parameters/ for a great discussion on how the 
+N, r, and p parameters affect memory and CPU usage.
 
 To specify the max heap size from the command line, set the JAVA_OPTS environment variable, 
 as in the following:
@@ -81,6 +98,8 @@ scrypt enc scryptbc scryptbc.enc
 diff scryptbc scryptbc.dec
 ```
 
+_TODO_: Add scryptbc enc, scrypt dec example 
+
 # License
 
 MIT License - see LICENSE.txt for details
@@ -95,6 +114,3 @@ Includes example code from "Java Cryptography: Tools and Techniques",
 by David Hook and Jon Eaves.
 * https://leanpub.com/javacryptotoolsandtech
 * https://downloads.bouncycastle.org/examples/java-crypto-tools-src.zip
-
-# Todo
-* Implement `enc` encryption sub-command

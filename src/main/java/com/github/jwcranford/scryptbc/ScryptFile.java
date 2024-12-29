@@ -14,7 +14,7 @@ import java.util.Arrays;
  * <h3>Usage</h3>
  * <pre>
  *    try {
- *         ScryptFile file = ScryptFile.decrypt(inputStream, len, password, outputStream);
+ *         ScryptFile file = ScryptFile.decrypt(inputFile, password, outputFile);
  *         Header header = file.getHeader();
  *    } catch (IOException e) {
  *        // handle I/O error
@@ -24,10 +24,9 @@ import java.util.Arrays;
  * </pre>
  *
  * <p>
- *     Note that in the case of error, partially decrypted data can be sent to the outputStream. The caller
+ *     Note that in the case of error, partially decrypted data can be sent to the outputFile. The caller
  *     is responsible for discarding the data if an exception is thrown.
  * </p>
- *
  */
 public final class ScryptFile {
 
@@ -39,6 +38,14 @@ public final class ScryptFile {
 
     private final Header header;
 
+    /**
+     * Used to create an ScryptFile prior to encrypting.
+     */
+    public ScryptFile(byte log2N, int r, int p) {
+        this.header = new Header(log2N, r, p);
+    }
+
+    // internal constructor used by decrypt
     private ScryptFile(Header header) {
         this.header = header;
     }
@@ -54,7 +61,7 @@ public final class ScryptFile {
      *
      * @param inputStream input stream. This stream is always closed before the method returns
      * @param len length of the input stream
-     * @param password password used to generate the decryption key.
+     * @param password password used to generate the symmetric encryption key.
      *                 Note that this method clears the password array immediately after use, as a security precaution.
      * @param outputStream decrypted data gets sent here. This stream is always closed before the method returns.
      * @return an ScryptFile object that holds the scrypt header read from the input stream
@@ -87,7 +94,7 @@ public final class ScryptFile {
                             header.getP(),
                             GENERATED_KEY_BITS);
             } catch (OutOfMemoryError e) {
-                System.err.printf("Not enough memory to generate the decryption key. Run again with a heap size larger than %,d bytes.%n",
+                System.err.printf("Not enough memory to generate the symmetric encryption key. Run again with a heap size larger than %,d bytes.%n",
                         Runtime.getRuntime().maxMemory());
                 throw e;
             }
@@ -106,7 +113,7 @@ public final class ScryptFile {
                 }
 
                 byte[] iv = new byte[IV_SIZE];
-                Cipher aesCipher = BcUtil.initAESCTRCipher(generatedKeys, 0, GENERATED_KEY_LEN, iv);
+                Cipher aesCipher = BcUtil.initAESCTRDecryptCipher(generatedKeys, 0, GENERATED_KEY_LEN, iv);
                 final int blockSize = aesCipher.getBlockSize();
                 byte[] buf = new byte[blockSize];
                 long remaining = len - (HMAC_LEN + HMAC_LEN + Header.HEADER_LEN);
@@ -121,6 +128,7 @@ public final class ScryptFile {
                         }
                         mac.update(buf, 0, read);
                         remaining -= read;
+                        Arrays.fill(buf, (byte) 0 ); // zero out array between reads defensively
                     }
                     outputStream.write(aesCipher.doFinal());
                 }
@@ -142,6 +150,88 @@ public final class ScryptFile {
         }
     }
 
+    /**
+     * Encrypt the given input stream with the given password. The encrypted data is sent
+     * to the given output stream.
+     *
+     * <p>
+     *     Note that the caller is responsible to discard the output data if an exception is thrown and the encryption
+     *     doesn't successfully complete.
+     * </p>
+     *
+     * @param inputStream input stream. This stream is always closed before the method returns
+     * @param password password used to generate the symmetric encryption key.
+     *                 Note that this method clears the password array immediately after use, as a security precaution.
+     * @param outputStream encrypted data gets sent here. This stream is always closed before the method returns.
+     * @throws IOException on I/O error
+     * @throws ScryptException on an error encrypting the data
+     */
+    public void encrypt(InputStream inputStream, char[] password, OutputStream outputStream) throws IOException, ScryptException {
+        if (header.calcMemRequired() > Runtime.getRuntime().maxMemory()) {
+            var msg = String.format("Not enough memory to derive the symmetric encryption key with log2N=%d. Run again with a heap size larger than %,d MB, or with a smaller value for log2N",
+                    header.getLog2N(), header.calcMbRequired());
+            throw new ScryptException(msg);
+        }
+
+        byte[] generatedKeys = null;
+        try {
+            generatedKeys = BcUtil.jceScrypt(
+                    password,
+                    header.getSalt(),
+                    1 << header.getLog2N(),
+                    header.getR(),
+                    header.getP(),
+                    GENERATED_KEY_BITS);
+        } catch (OutOfMemoryError e) {
+            System.err.printf("Not enough memory to generate the symmetric encryption key with log2N=%d. Run again with a heap size larger than %,d bytes, or with a smaller value for log2N.%n",
+                    header.getLog2N(), Runtime.getRuntime().maxMemory());
+            throw e;
+        }
+
+        // clear password, since we don't need it anymore
+        Arrays.fill(password, (char) 0);
+
+        // encrypt
+        try (outputStream) {
+            outputStream.write(header.encode());
+            try {
+                Mac mac = BcUtil.newHmacSha256Mac(generatedKeys, HMAC_KEY_OFFSET);
+                mac.update(header.getEncodedBytes(), 0, Header.HEADER_LEN);
+                byte[] firstHMac = mac.doFinal();
+                outputStream.write(firstHMac);
+
+                byte[] iv = new byte[IV_SIZE];
+                Cipher aesCipher = BcUtil.initAESCTREncryptCipher(generatedKeys, 0, GENERATED_KEY_LEN, iv);
+                final int blockSize = aesCipher.getBlockSize();
+                byte[] buf = new byte[blockSize];
+                mac.update(header.getEncodedBytes());
+                mac.update(firstHMac);
+                try (inputStream) {
+                    int read = inputStream.read(buf, 0, blockSize);
+                    while (read > 0) {
+                        var enc = aesCipher.update(buf, 0, read);
+                        if (enc != null) {
+                            outputStream.write(enc);
+                            mac.update(enc);
+                        }
+                        Arrays.fill(buf, (byte) 0); // zero out array between reads defensively
+                        read = inputStream.read(buf, 0, blockSize);
+                    }
+                }
+                byte[] last = aesCipher.doFinal();
+                outputStream.write(last);
+                mac.update(last);
+
+                byte[] lastHmac = mac.doFinal();
+                outputStream.write(lastHmac);
+
+            } catch (InvalidKeyException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalBlockSizeException | BadPaddingException e) {
+                throw new ScryptException.Encryption(e);
+            }
+        }
+    }
 
     private static int min(long bigNumber, int littleNumber) {
         if (bigNumber > Integer.MAX_VALUE) {
@@ -159,6 +249,18 @@ public final class ScryptFile {
             // have to catch it anyway according to the type signature
             throw new RuntimeException(e);
         }
+    }
+
+    /** Convenience method */
+    public static ScryptFile decrypt(File inputFile, char[] password, File outputFile)
+            throws IOException, ScryptException {
+        return decrypt(new FileInputStream(inputFile), inputFile.length(), password, new FileOutputStream(outputFile));
+    }
+
+    /** Convenience method */
+    public void encrypt(File inputFile, char[] password, File outputFile)
+            throws IOException, ScryptException {
+        encrypt(new FileInputStream(inputFile), password, new FileOutputStream(outputFile));
     }
 
     public Header getHeader() {

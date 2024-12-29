@@ -36,6 +36,12 @@ public class ScryptException extends Exception {
         }
     }
 
+    public static class Encryption extends ScryptException {
+        public Encryption(Exception cause) {
+            super(cause);
+        }
+    }
+
     public static class InvalidField extends ScryptException {
         public InvalidField(String fieldName, byte[] expected, byte[] actual) {
             super(String.format("Invalid %s. Expected '%s' (0x%s), read '%s' (0x%s) instead",

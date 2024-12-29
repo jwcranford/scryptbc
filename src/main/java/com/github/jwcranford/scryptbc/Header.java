@@ -35,17 +35,39 @@ public final class Header {
 
     private byte[] encodedBytes;
 
+    // TODO - default constructor that generates N, r, p
+
     public Header(byte log2N, int r, int p, byte[] salt) {
-        if (invalidLog2N(log2N)) {
-            throw new IllegalArgumentException(String.format("invalid log2N - must be between 1 and %d inclusive", MAX_LOG2N));
-        }
-        if (invalidRP(r, p)) {
-            throw new IllegalArgumentException("Invalid r and p; must satisfy r * p < 2 ^ 30");
-        }
-        this.log2N = log2N;
+        this.log2N = checkValidLog2N(log2N);
+        assertValidRP(r, p);
         this.r = r;
         this.p = p;
         this.salt = salt;
+    }
+
+    /**
+     * Use this constructor to randomly generate a salt.
+     */
+    public Header(byte log2N, int r, int p) {
+        this.log2N = checkValidLog2N(log2N);
+        assertValidRP(r, p);
+        this.r = r;
+        this.p = p;
+        this.salt = new byte[SALT_LEN];
+        BcUtil.getSecureRandom().nextBytes(this.salt);
+    }
+
+    private static void assertValidRP(int r, int p) {
+        if (invalidRP(r, p)) {
+            throw new IllegalArgumentException("Invalid r and p; must satisfy r * p < 2 ^ 30");
+        }
+    }
+
+    private static byte checkValidLog2N(byte log2N) {
+        if (invalidLog2N(log2N)) {
+            throw new IllegalArgumentException(String.format("invalid log2N - must be between 1 and %d inclusive", MAX_LOG2N));
+        }
+        return log2N;
     }
 
     /**
@@ -144,6 +166,8 @@ public final class Header {
         return calcMemRequired() / BYTES_IN_MB;
     }
 
+    // Thanks to https://blog.filippo.io/the-scrypt-parameters/ for a great
+    // discussion on how the N, r, and p parameters affect memory and CPU usage.
     public long calcMemRequired() {
         return MEM_USAGE_FACTOR * (1L << log2N) * r;
     }

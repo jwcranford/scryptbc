@@ -1,7 +1,5 @@
 package com.github.jwcranford.scryptbc;
 
-import org.bouncycastle.crypto.PBEParametersGenerator;
-import org.bouncycastle.crypto.generators.SCrypt;
 import org.bouncycastle.jcajce.spec.ScryptKeySpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -65,19 +63,6 @@ public class BcUtil {
         }
     }
 
-    public static byte[] computeHMAC(byte[] key,  int keyOffset,  int keyLen,
-                              byte[] data, int dataOffset, int dataLen) {
-        try {
-            SecretKey macKey = new SecretKeySpec(key, keyOffset, keyLen, HMAC_SHA_256);
-            Mac mac = Mac.getInstance(HMAC_SHA_256, BC);
-            mac.init(macKey);
-            mac.update(data, dataOffset, dataLen);
-            return mac.doFinal();
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * Calculate a derived key using SCRYPT using the BC JCE provider.
      *
@@ -105,28 +90,6 @@ public class BcUtil {
         }
     }
 
-    /**
-     * Calculate a derived key using SCRYPT using the BC low-level API.
-     *
-     * @param password the password input.
-     * @param salt the salt parameter.
-     * @param costParameter the cost parameter.
-     * @param blocksize the blocksize parameter.
-     * @param parallelizationParam the parallelization parameter.
-     * @param keySize in bytes
-     * @return the derived key.
-     */
-    public static byte[] bcSCRYPT(char[] password, byte[] salt,
-                                  int costParameter, int blocksize,
-                                  int parallelizationParam,
-                                  int keySize)
-    {
-        return SCrypt.generate(
-                PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(password),
-                salt, costParameter, blocksize, parallelizationParam,
-                keySize);
-    }
-
     public static Mac newHmacSha256Mac(byte[] generatedKeys, int keyOffset) throws InvalidKeyException {
         try {
             Mac mac = Mac.getInstance(HMAC_SHA_256, BC);
@@ -137,14 +100,30 @@ public class BcUtil {
         }
     }
 
-    public static Cipher initAESCTRCipher(byte[] keyData, int offset, int len, byte[] iv) throws InvalidKeyException {
+    public static Cipher initAESCTRDecryptCipher(byte[] keyData, int offset, int len, byte[] iv) throws InvalidKeyException {
+        return initAESCTRCipher(Cipher.DECRYPT_MODE, keyData, offset, len, iv);
+    }
+
+    public static Cipher initAESCTREncryptCipher(byte[] keyData, int offset, int len, byte[] iv) throws InvalidKeyException {
+        return initAESCTRCipher(Cipher.ENCRYPT_MODE, keyData, offset, len, iv);
+    }
+
+    private static Cipher initAESCTRCipher(int mode, byte[] keyData, int offset, int len, byte[] iv) throws InvalidKeyException {
         try {
             var cipher = Cipher.getInstance(AES_CTR_NO_PADDING, BC);
-            cipher.init(Cipher.DECRYPT_MODE,
+            cipher.init(mode,
                     new SecretKeySpec(keyData, offset, len, AES),
                     new IvParameterSpec(iv));
             return cipher;
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static SecureRandom getSecureRandom() {
+        try {
+            return SecureRandom.getInstance("DEFAULT", BC);
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
