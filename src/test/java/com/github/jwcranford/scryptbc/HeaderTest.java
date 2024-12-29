@@ -119,4 +119,11 @@ public class HeaderTest {
         var header = new Header(HELLOWORLD_LOG2N, HELLOWORLD_R, HELLOWORLD_P, Hex.decode(SALT_HEX));
         assertEquals(HELLOWORLD_HEX.substring(0, 128), Hex.toHexString(header.encode()));
     }
+
+    @Test
+    public void test_calcDefaultLog2N() {
+        assertEquals(20, calcDefaultLog2N(1<<30, DEFAULT_R));
+        assertEquals(19, calcDefaultLog2N(1<<29, DEFAULT_R));
+        assertEquals(18, calcDefaultLog2N(1<<28, DEFAULT_R));
+    }
 }

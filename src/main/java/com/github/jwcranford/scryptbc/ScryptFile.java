@@ -38,15 +38,7 @@ public final class ScryptFile {
 
     private final Header header;
 
-    /**
-     * Used to create an ScryptFile prior to encrypting.
-     */
-    public ScryptFile(byte log2N, int r, int p) {
-        this.header = new Header(log2N, r, p);
-    }
-
-    // internal constructor used by decrypt
-    private ScryptFile(Header header) {
+    public ScryptFile(Header header) {
         this.header = header;
     }
 

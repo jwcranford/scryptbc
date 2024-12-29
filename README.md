@@ -27,6 +27,7 @@ Display help information about the specified command.
 ```
 scryptbc help info
 scryptbc help dec
+scryptbc help enc
 ```
 
 ### Info
@@ -52,13 +53,17 @@ be used to derive the encryption key.
 
 ```
 scryptbc enc [-v] [--logN=<arg1>] [-p=<arg3>] [-r=<arg2>] infile outfile
-    --logN=<arg1>   Set the work parameter N to 2^value.  If --logN is set,
-                        -r and -p must also be set.
-    -p=<arg3>       Set the work parameter p to value.  If -p is set, --logN
-                        and -r must also be set.
-    -r=<arg2>       Set the work parameter r to value.  If -r is set, --logN
-                        and -p must also be set.
-    -v, --verbose   Print encryption parameters (N, r, p) and memory/cpu
+  --logN=<arg1>       Set the work parameter N to 2^value.  If --logN is set,
+                        -r and -p must also be set for the logN value to be
+                        used; otherwise, a default value is calculated based on
+                        half of the maximum heap size of the JVM.
+  -p=<arg3>           Set the work parameter p to value.  If -p is set, --logN
+                        and -r must also be set for the p value to be used;
+                        otherwise, a default value of 1 is used.
+  -r=<arg2>           Set the work parameter r to value.  If -r is set, --logN
+                        and -p must also be set for the r value to be used;
+                        otherwise, a default value of 8 is used.
+  -v, --verbose       Print encryption parameters (N, r, p) and memory/cpu
                         limits to standard error
 ```
 
@@ -89,7 +94,7 @@ cd build/install/scryptbc/bin
 
 # Interoperability Testing with scrypt
 
-The following commands assume that scrypt are both installed on the PATH.
+The following commands assume that scrypt is installed on the PATH.
 
 ```
 cd build/install/scryptbc/bin
@@ -104,7 +109,7 @@ _TODO_: Add scryptbc enc, scrypt dec example
 
 MIT License - see LICENSE.txt for details
 
-Copyright (c) 2022-2024 Jonathan W. Cranford
+Copyright (c) 2022-2025 Jonathan W. Cranford
 
 The scrypt-FORMAT.txt file is copied from the scrypt project at
 https://raw.githubusercontent.com/Tarsnap/scrypt/master/FORMAT and is

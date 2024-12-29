@@ -62,25 +62,33 @@ public class App {
             ) boolean verbose,
             @Option(
                     names = {"--logN"},
-                    description = "Set the work parameter N to 2^value.  If --logN is set, -r and -p must also be set."
+                    description = "Set the work parameter N to 2^value.  If --logN is set, -r and -p must also be set " +
+                            "for the logN value to be used; otherwise, a default value is calculated based on half of " +
+                            "the maximum heap size of the JVM."
             ) byte logN,
             @Option(
                     names = {"-r"},
-                    description = "Set the work parameter r to value.  If -r is set, --logN and -p must also be set."
+                    description = "Set the work parameter r to value.  If -r is set, --logN and -p must also be set " +
+                            "for the r value to be used; otherwise, a default value of " + Header.DEFAULT_R + " is used."
             ) int r,
             @Option(
                     names = {"-p"},
-                    description = "Set the work parameter p to value.  If -p is set, --logN and -r must also be set."
+                    description = "Set the work parameter p to value.  If -p is set, --logN and -r must also be set " +
+                            "for the p value to be used; otherwise, a default value of " + Header.DEFAULT_P + " is used."
             ) int p,
             @Parameters(index="0", paramLabel = "infile") Path infile,
             @Parameters(index="1", paramLabel = "outfile") Path outfile
     ) {
+        if (!validNRP(logN, r, p)) {
+            System.err.printf("Invalid combination: logN=%d, r=%d, p=%d%n", logN, r, p);
+            return CommandLine.ExitCode.USAGE;
+        }
         Console console = System.console();
         try {
             char[] password = readPassword(console, "Enter password: ");
             char[] password2 = readPassword(console, "Enter password again: ");
             if (Arrays.equals(password, password2)) {
-                var file = new ScryptFile(logN, r, p);
+                var file = new ScryptFile(createHeader(logN, r, p));
                 file.encrypt(infile.toFile(), password, outfile.toFile());
                 if (verbose) {
                     printInfo(file.getHeader());
@@ -114,8 +122,21 @@ public class App {
             }
             return CommandLine.ExitCode.OK;
         } catch (IOException | ScryptException e) {
-            System.err.println(e);
+            System.err.println(e.toString());
             return CommandLine.ExitCode.SOFTWARE;
+        }
+    }
+
+    private static boolean validNRP(byte logN, int r, int p) {
+        // all are zero or all are positive
+        return (logN == 0 && r == 0 && p == 0) || (logN > 0 && r > 0 && p > 0);
+    }
+
+    private static Header createHeader(byte logN, int r, int p) {
+        if (logN == 0 && r == 0 && p == 0) {
+            return new Header();
+        } else {
+            return new Header(logN, r, p);
         }
     }
 

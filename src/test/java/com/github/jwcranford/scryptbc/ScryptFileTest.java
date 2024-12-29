@@ -44,7 +44,7 @@ public class ScryptFileTest {
 
     @Test
     public void encrypt_and_decrypt_work_symmetrically() throws IOException, ScryptException {
-        var file = new ScryptFile(HeaderTest.HELLOWORLD_LOG2N, HeaderTest.HELLOWORLD_R, HeaderTest.HELLOWORLD_P);
+        var file = new ScryptFile(new Header(HeaderTest.HELLOWORLD_LOG2N, HeaderTest.HELLOWORLD_R, HeaderTest.HELLOWORLD_P));
         var cipherStream = new ByteArrayOutputStream();
         byte[] plaintext = HELLOWORLD.getBytes(StandardCharsets.US_ASCII);
         file.encrypt(plaintext, PASSPHRASE.toCharArray(), cipherStream);

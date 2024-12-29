@@ -28,6 +28,9 @@ public final class Header {
     public static final int MAX_LOG2N = 63;
     public static final int MAX_RP = 1 << 30;
 
+    public static final int DEFAULT_R = 8;
+    public static final int DEFAULT_P = 1;
+
     private final byte log2N;
     private final int r;
     private final int p;
@@ -35,7 +38,14 @@ public final class Header {
 
     private byte[] encodedBytes;
 
-    // TODO - default constructor that generates N, r, p
+    /**
+     * Default constructor that generates N, r, p. Note that the default
+     * value of N based on half the max heap size of the JVM. */
+    public Header() {
+        this(calcDefaultLog2N(Runtime.getRuntime().maxMemory() >> 1, DEFAULT_R),
+                DEFAULT_R,
+                DEFAULT_P);
+    }
 
     public Header(byte log2N, int r, int p, byte[] salt) {
         this.log2N = checkValidLog2N(log2N);
@@ -170,6 +180,11 @@ public final class Header {
     // discussion on how the N, r, and p parameters affect memory and CPU usage.
     public long calcMemRequired() {
         return MEM_USAGE_FACTOR * (1L << log2N) * r;
+    }
+
+    static byte calcDefaultLog2N(long mem, int r) {
+        long N = mem / MEM_USAGE_FACTOR / r;
+        return (byte) (Math.log(N) / Math.log(2));
     }
 
     public byte getLog2N() {
