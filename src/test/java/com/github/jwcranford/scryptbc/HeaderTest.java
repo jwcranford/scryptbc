@@ -21,9 +21,9 @@ public class HeaderTest {
     static final String HELLOWORLD_HEX =
             "736372797074001400000008000000018be0865ea0d0a5897c8c53fc0952355d450487b28ba8e6cbb1c30a85f0112d035be0a9e97db2468659459719b4948446759eb4cab6541dcb921798240c8e4c8949000ef60757598c7e4e14a7cd9bb0d91ca9ce5e3426077ee79bbbc82cc5a146dec44cc793d17a8a520a67e55747a9fa4de3bedd7616c8b9435912e7";
     private static final byte[] HELLOWORLD_ENC_BYTES = Hex.decode(HELLOWORLD_HEX);
-    private static final byte HELLOWORLD_LOG2N = 0x14;
-    private static final int HELLOWORLD_R = 0x8;
-    private static final int HELLOWORLD_P = 1;
+    static final byte HELLOWORLD_LOG2N = 0x14;
+    static final int HELLOWORLD_R = 0x8;
+    static final int HELLOWORLD_P = 1;
     private static final byte[] INVALID_HEADER = "invalid".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] INVALID_HEADER2 = "œ∑ß≈ç√".getBytes(StandardCharsets.UTF_8);
     private static final byte INVALID_VERSION = 1;

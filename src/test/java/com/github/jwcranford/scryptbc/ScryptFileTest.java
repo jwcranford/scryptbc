@@ -4,6 +4,7 @@ import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -23,7 +24,7 @@ public class ScryptFileTest {
     }
 
     @Test
-    public void valid_input_decrypts_successfully() throws ScryptException {
+    public void valid_input_decrypts_successfully() throws IOException, ScryptException {
         byte[] input = Hex.decode(HeaderTest.HELLOWORLD_HEX);
         var out = new ByteArrayOutputStream();
         ScryptFile file = ScryptFile.decrypt(input, PASSPHRASE.toCharArray(), out);
@@ -39,6 +40,17 @@ public class ScryptFileTest {
         input[99] = 0;
         assertThrows(ScryptException.CorruptFile.class,
                 () -> ScryptFile.decrypt(input, PASSPHRASE.toCharArray(), new NullOutputStream()));
+    }
+
+    @Test
+    public void encrypt_and_decrypt_work_symmetrically() throws IOException, ScryptException {
+        var file = new ScryptFile(HeaderTest.HELLOWORLD_LOG2N, HeaderTest.HELLOWORLD_R, HeaderTest.HELLOWORLD_P);
+        var cipherStream = new ByteArrayOutputStream();
+        byte[] plaintext = HELLOWORLD.getBytes(StandardCharsets.US_ASCII);
+        file.encrypt(plaintext, PASSPHRASE.toCharArray(), cipherStream);
+        var decryptedStream = new ByteArrayOutputStream();
+        ScryptFile.decrypt(cipherStream.toByteArray(), PASSPHRASE.toCharArray(), decryptedStream);
+        assertArrayEquals(plaintext, decryptedStream.toByteArray());
     }
 }
 

@@ -241,14 +241,13 @@ public final class ScryptFile {
     }
 
     /** Convenience method */
-    public static ScryptFile decrypt(byte[] bytes, char[] password, OutputStream outputStream) throws ScryptException {
-        try {
-            return decrypt(new ByteArrayInputStream(bytes), bytes.length, password, outputStream);
-        } catch (IOException e) {
-            // ByteArrayInputStream doesn't throw IOException, but we
-            // have to catch it anyway according to the type signature
-            throw new RuntimeException(e);
-        }
+    public static ScryptFile decrypt(byte[] bytes, char[] password, OutputStream outputStream) throws IOException, ScryptException {
+        return decrypt(new ByteArrayInputStream(bytes), bytes.length, password, outputStream);
+    }
+
+    /** Convenience method */
+    public void encrypt(byte[] bytes, char[] password, OutputStream outputStream) throws IOException, ScryptException {
+        encrypt(new ByteArrayInputStream(bytes), password, outputStream);
     }
 
     /** Convenience method */
