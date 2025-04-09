@@ -92,18 +92,37 @@ cd build/install/scryptbc/bin
 ./scryptbc -h 
 ```
 
+## Releases
+
+The releases available in github were built using the following commands, using the 0.2.0 
+release as an example. 
+
+```
+git tag v0.2.0
+./gradlew clean build 
+cd build/distributions
+mv scryptbc.tar scryptbc-0.2.0.tar
+mv scryptbc.zip scryptbc-0.2.0.zip
+git push --tags
+```
+
+`scryptbc-0.2.0.tar` and `scryptbc-0.2.0.zip` were then uploaded as a release in github.
+
 # Interoperability Testing with scrypt
 
 The following commands assume that scrypt is installed on the PATH.
 
 ```
 cd build/install/scryptbc/bin
+
 scrypt enc scryptbc scryptbc.enc
 ./scryptbc dec -v scryptbc.enc scryptbc.dec
 diff scryptbc scryptbc.dec
-```
 
-_TODO_: Add scryptbc enc, scrypt dec example 
+./scryptbc enc scryptbc scryptbc.enc2
+scrypt dec -v scryptbc.enc2 scryptbc.dec2
+diff scryptbc scryptbc.dec2
+```
 
 # License
 
