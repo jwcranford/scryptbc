@@ -75,7 +75,7 @@ based on the `N` and `r` parameters in the file header. See
 https://blog.filippo.io/the-scrypt-parameters/ for a great discussion on how the 
 N, r, and p parameters affect memory and CPU usage.
 
-To specify the max heap size from the command line, set the JAVA_OPTS environment variable, 
+To specify the max heap size from the command line, set the `JAVA_OPTS` environment variable, 
 as in the following:
 
 ```
